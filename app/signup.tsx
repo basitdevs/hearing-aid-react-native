@@ -2,10 +2,61 @@ import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, SafeAreaView, Image, TouchableOpacity } from "react-native";
 
+// import {
+//   GoogleSignin,
+//   isSuccessResponse,
+//   isErrorWithCode,
+//   statusCodes,
+// } from "@react-native-google-signin/google-signin";
+
+import * as WebBrowser from "expo-web-browser";
+import * as AuthSession from "expo-auth-session";
+import * as Google from "expo-auth-session/providers/google";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const SignupScreen = () => {
   const [showLoginButtons, setShowLoginButtons] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMessage, setShowMessage] = useState("start");
 
+  // Replace with your actual client ID from Google Console
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: "122505109534-0b7j9r99f7091h700mq3nhan01ai06qo.apps.googleusercontent.com",
+    redirectUri: AuthSession.makeRedirectUri(),
+    scopes: ["profile", "email"],
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      setShowMessage("Signed In Successfully 🎉");
+      const { authentication } = response;
+      console.log("Access Token:", authentication?.accessToken);
+      // You can now use the access token to fetch user data from Google
+    } else if (response?.type === "error") {
+      setShowMessage("Google Sign In Failed");
+    }
+  }, [response]);
+
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      await promptAsync();
+    } catch (error) {
+      console.error(error);
+      setShowMessage("Error Occurred During Sign In");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // useEffect(() => {
+  //   GoogleSignin.configure({
+  //     iosClientId: "122505109534-qf2keqla3lmppanfpq33se601vk0247h.apps.googleusercontent.com",
+  //     webClientId: "122505109534-0b7j9r99f7091h700mq3nhan01ai06qo.apps.googleusercontent.com",
+  //     profileImageSize: 150,
+  //   });
+  // }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -14,6 +65,40 @@ const SignupScreen = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // const handleGoogleSignIn = async () => {
+  //   try {
+  //     setIsSubmitting(true);
+  //     await GoogleSignin.hasPlayServices();
+  //     const response = await GoogleSignin.signIn();
+
+  //     if (isSuccessResponse(response)) {
+  //       console.log(response.data);
+  //       const { idToken, user } = response.data;
+  //       const { email, name, photo } = user;
+  //     } else {
+  //       setShowMessage("Google Sign In Failed/Cancelled");
+  //     }
+  //   } catch (error) {
+  //     if (isErrorWithCode(error)) {
+  //       switch (error.code) {
+  //         case statusCodes.IN_PROGRESS:
+  //           setShowMessage("Google Sign In in Progress");
+  //           break;
+  //         case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+  //           setShowMessage("Play Services Not Available");
+  //           break;
+  //         default:
+  //           setShowMessage("Google Sign In Failed/Cancelled");
+  //           break;
+  //       }
+  //     } else {
+  //       setShowMessage("Error Occured");
+  //     }
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   return (
     <SafeAreaView className='flex-1 bg-primary relative h-full'>
@@ -37,6 +122,8 @@ const SignupScreen = () => {
 
               <View className='gap-[12px] w-full'>
                 <TouchableOpacity
+                  onPress={handleGoogleSignIn}
+                  disabled={!request || isSubmitting}
                   className='items-center py-[12px] px-[16px] justify-center flex-row w-full bg-[#333333] h-[48px]  rounded-[12px] '>
                   <Image
                     source={require("../assets/icons/google.png")}
@@ -44,7 +131,7 @@ const SignupScreen = () => {
                     resizeMode='cover'
                   />
                   <Text className='text-white text-[15px] font-[400]  flex-1 text-center'>
-                    Continue with Google
+                    {isSubmitting ? "Signing In..." : "Continue with Google"}
                   </Text>
                 </TouchableOpacity>
 
@@ -66,6 +153,11 @@ const SignupScreen = () => {
                   <Text className='text-[#00E0B6]'>Sign in</Text>
                 </Link>
               </View>
+              {showMessage !== "" && (
+                <Text className='text-red-400 text-[13px] text-center mt-[10px]'>
+                  {showMessage}
+                </Text>
+              )}
             </View>
           </ScrollView>
         </>
